@@ -10,8 +10,8 @@ SRC="$ROOT/video"
 OUT="$ROOT/assets/frames"
 
 SCRUB_FPS="${SCRUB_FPS:-12}"   # кадров/сек для скраба
-WIDTH="${WIDTH:-1280}"         # ширина кадра (высота авто, кратна 2)
-QV="${QV:-5}"                  # качество JPEG (2..31, меньше=лучше)
+WIDTH="${WIDTH:-1000}"         # ширина кадра (высота авто, кратна 2) — легче декод/загрузка
+QV="${QV:-6}"                  # качество JPEG (2..31, меньше=лучше)
 
 echo "ffmpeg: $FFMPEG"
 echo "fps=$SCRUB_FPS width=$WIDTH q:v=$QV"

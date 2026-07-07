@@ -14,6 +14,7 @@
   var stationEls = [];
   var railFill, railCur;
   var lastActive = -1;
+  var lastFillPct = '';
 
   var AMBER = [255, 178, 62];
   var BLUE = [77, 163, 255];
@@ -104,10 +105,14 @@
 
     var act = activeIndex(p);
 
-    // рельс: прогресс
+    // рельс: прогресс — пишем в DOM только при заметном изменении
     if (railFill) {
-      if (window.innerWidth <= 720) { railFill.style.height = ''; railFill.style.width = (p * 100) + '%'; }
-      else { railFill.style.width = ''; railFill.style.height = (p * 100) + '%'; }
+      var pctStr = (Math.round(p * 1000) / 10) + '%';
+      if (pctStr !== lastFillPct) {
+        lastFillPct = pctStr;
+        if (window.innerWidth <= 720) { railFill.style.height = ''; railFill.style.width = pctStr; }
+        else { railFill.style.width = ''; railFill.style.height = pctStr; }
+      }
     }
     if (act !== lastActive) {
       lastActive = act;

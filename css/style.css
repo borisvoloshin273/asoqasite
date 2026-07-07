@@ -228,12 +228,12 @@ img { max-width: 100%; }
   bottom: clamp(72px, 15vh, 156px);
   width: min(468px, 42vw);
   padding: 26px 32px 28px;
-  background: linear-gradient(158deg, rgba(17, 21, 30, 0.82) 0%, rgba(8, 10, 15, 0.9) 100%);
+  background: linear-gradient(158deg, rgba(15, 18, 26, 0.9) 0%, rgba(7, 9, 13, 0.95) 100%);
   border-left: 3px solid var(--accent);
   border-radius: 0 7px 7px 0;
   box-shadow: 0 28px 64px -16px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.07);
-  -webkit-backdrop-filter: blur(10px) saturate(1.1);
-  backdrop-filter: blur(10px) saturate(1.1);
+  /* без backdrop-filter: карточка почти непрозрачна, а blur пересчитывался каждый
+     кадр скролла и был главной причиной тормозов */
   opacity: 0;
   transform: translateY(16px);
   filter: blur(2px);

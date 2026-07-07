@@ -41,41 +41,33 @@
     });
   }
 
-  // Прелоадер: грузим кадры 1-й сцены, показываем %, снимаем экран.
-  function preloadFirstScene() {
-    var firstCount = CFG.scenes[0].frames;
+  // Полная предзагрузка всей ленты за прелоадером — скраб не сможет обогнать
+  // загрузку и «зависнуть» на кадре. Показываем реальный % по всем кадрам.
+  function loadAll() {
     var fill = document.getElementById('pl-fill');
     var pct = document.getElementById('pl-pct');
-    var done = 0;
-    var promises = [];
-    for (var g = 0; g < firstCount; g++) {
-      promises.push(loadFrame(g).then(function () {
-        done++;
-        var p = Math.round((done / firstCount) * 100);
-        if (fill) fill.style.width = p + '%';
-        if (pct) pct.textContent = p + '%';
-      }));
-    }
-    return Promise.all(promises);
-  }
-
-  // Фоновый префетч остальных сцен по порядку (совпадает с направлением скролла).
-  function prefetchRest() {
-    var g = CFG.scenes[0].frames;
-    var CONC = 6;
-    function pump() {
-      var batch = [];
-      for (var k = 0; k < CONC && g < total; k++, g++) batch.push(loadFrame(g));
-      if (batch.length === 0) return;
-      Promise.all(batch).then(pump);
-    }
-    pump();
+    var done = 0, next = 0, running = 0;
+    var CONC = 8;                      // параллельных запросов
+    return new Promise(function (resolve) {
+      function launch() {
+        while (running < CONC && next < total) {
+          var g = next++;
+          running++;
+          loadFrame(g).then(function () {
+            running--; done++;
+            var p = Math.round((done / total) * 100);
+            if (fill) fill.style.width = p + '%';
+            if (pct) pct.textContent = p + '%';
+            if (done >= total) resolve();
+            else launch();
+          });
+        }
+      }
+      launch();
+    });
   }
 
   A.startLoading = function () {
-    return preloadFirstScene().then(function () {
-      A.ready = true;
-      prefetchRest();
-    });
+    return loadAll().then(function () { A.ready = true; });
   };
 })();
