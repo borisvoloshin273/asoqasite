@@ -220,59 +220,65 @@ img { max-width: 100%; }
   z-index: 12;
   pointer-events: none;
 }
+/* Кинематографичная «подпись»: единый нижне-левый якорь, чёткая карточка
+   с акцентной планкой слева (цвет сцены), без мутного стекла. */
 .panel {
   position: absolute;
-  max-width: min(430px, 84vw);
-  padding: 22px 24px 24px;
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-brd);
-  border-radius: 16px;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
-  backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
-  box-shadow: 0 18px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
-  /* Появление только через opacity/blur — позиционирующий transform не трогаем,
-     поэтому центрирование не конфликтует с анимацией и reduced-motion. */
+  left: clamp(38px, 5vw, 96px);
+  bottom: clamp(72px, 15vh, 156px);
+  width: min(468px, 42vw);
+  padding: 26px 32px 28px;
+  background: linear-gradient(158deg, rgba(17, 21, 30, 0.82) 0%, rgba(8, 10, 15, 0.9) 100%);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 7px 7px 0;
+  box-shadow: 0 28px 64px -16px rgba(0, 0, 0, 0.62), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  -webkit-backdrop-filter: blur(10px) saturate(1.1);
+  backdrop-filter: blur(10px) saturate(1.1);
   opacity: 0;
-  filter: blur(3px);
-  transition: opacity 0.5s var(--ease), filter 0.5s var(--ease);
-  will-change: opacity, filter;
+  transform: translateY(16px);
+  filter: blur(2px);
+  transition: opacity 0.55s var(--ease), transform 0.55s var(--ease), filter 0.55s var(--ease);
+  will-change: opacity, transform;
 }
-.panel.show { opacity: 1; filter: blur(0); }
-
-/* Позиции плашек (panelPos) — статичные, без анимации */
-.panel.pos-center      { left: 50%; top: 50%; transform: translate(-50%, -50%); }
-.panel.pos-bottom      { left: 50%; bottom: clamp(76px, 12vh, 120px); transform: translateX(-50%); }
-.panel.pos-bottom-left { left: var(--pad); bottom: clamp(76px, 12vh, 120px); }
-.panel.pos-top-left    { left: var(--pad); top: clamp(90px, 15vh, 150px); }
-.panel.pos-top         { left: 50%; top: clamp(90px, 15vh, 150px); transform: translateX(-50%); }
+.panel.show { opacity: 1; transform: translateY(0); filter: blur(0); }
 
 .panel-eyebrow {
   font-family: var(--mono);
   font-size: 11px;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
   color: var(--accent);
-  margin: 0 0 12px;
+  margin: 0 0 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
-.panel-eyebrow .eb-num { color: var(--accent); }
-.panel-eyebrow .eb-tag { color: var(--text-dim); letter-spacing: 0.16em; }
+.panel-eyebrow .eb-num { color: var(--accent); font-weight: 500; }
+/* «·» превращаем в тонкую линию-тик */
+.panel-eyebrow .eb-sep {
+  display: inline-block;
+  width: 18px; height: 1px;
+  background: currentColor;
+  opacity: 0.45;
+  color: transparent;
+  overflow: hidden;
+}
+.panel-eyebrow .eb-tag { color: var(--text-dim); letter-spacing: 0.2em; }
 .panel-h {
-  margin: 0 0 10px;
-  font-size: clamp(23px, 3vw, 34px);
+  margin: 0 0 12px;
+  font-size: clamp(26px, 2.7vw, 40px);
   font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  color: var(--text);
+  line-height: 1.04;
+  letter-spacing: -0.028em;
+  color: #ffffff;
 }
 .panel-p {
   margin: 0;
-  font-size: clamp(14px, 1.4vw, 16px);
-  line-height: 1.5;
-  color: var(--text-dim);
+  font-size: clamp(14px, 1.1vw, 16px);
+  line-height: 1.55;
+  color: #C4CCD8;
   font-weight: 400;
+  max-width: 42ch;
 }
 .panel-cta {
   pointer-events: auto;
@@ -385,11 +391,12 @@ img { max-width: 100%; }
     background: linear-gradient(to right, var(--amber), var(--blue));
   }
   .rail-stations { display: none; }
-  .panel { max-width: 88vw; padding: 18px 18px 20px; }
-  /* На узком экране плашки, привязанные к краю, центрируем по горизонтали */
-  .panel.pos-bottom-left, .panel.pos-top-left { left: 50%; right: auto; transform: translateX(-50%); }
-  .panel.pos-bottom, .panel.pos-bottom-left { bottom: clamp(58px, 12vh, 100px); }
-  .panel.pos-top-left { top: clamp(84px, 14vh, 130px); }
+  .panel {
+    left: 5vw; right: 5vw;
+    width: auto;
+    bottom: clamp(64px, 12vh, 104px);
+    padding: 20px 22px 22px;
+  }
 }
 
 /* Доступность */
@@ -400,9 +407,8 @@ img { max-width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* Не трогаем позиционирующий transform — убираем только blur-движение */
-  .panel { transition: opacity 0.35s ease; filter: none; }
-  .panel.show { filter: none; }
+  .panel { transition: opacity 0.35s ease; transform: none; filter: none; }
+  .panel.show { transform: none; filter: none; }
   .brand-dot, .hint-arrow { animation: none; }
   .pl-fill, .rail-fill { transition: none; }
 }
