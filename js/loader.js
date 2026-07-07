@@ -41,33 +41,41 @@
     });
   }
 
-  // Полная предзагрузка всей ленты за прелоадером — скраб не сможет обогнать
-  // загрузку и «зависнуть» на кадре. Показываем реальный % по всем кадрам.
-  function loadAll() {
+  // Грузим кадры по порядку с параллелизмом. Прелоадер снимаем сразу после
+  // 1-й сцены (быстрый старт), остальное догружается фоном. Длину прокрутки
+  // наращивает scrubber по A.frontier — обогнать загрузку и «зависнуть» нельзя.
+  function loadAll(onInit) {
     var fill = document.getElementById('pl-fill');
     var pct = document.getElementById('pl-pct');
-    var done = 0, next = 0, running = 0;
-    var CONC = 8;                      // параллельных запросов
-    return new Promise(function (resolve) {
-      function launch() {
-        while (running < CONC && next < total) {
-          var g = next++;
-          running++;
-          loadFrame(g).then(function () {
-            running--; done++;
-            var p = Math.round((done / total) * 100);
+    var firstCount = CFG.scenes[0].frames;
+    var next = 0, running = 0, inited = false;
+    var CONC = 8;
+    function markInit() {
+      if (inited) return;
+      inited = true;
+      A.ready = true;
+      onInit();
+    }
+    function launch() {
+      while (running < CONC && next < total) {
+        var g = next++;
+        running++;
+        loadFrame(g).then(function () {
+          running--;
+          if (!inited) {
+            var p = Math.min(100, Math.round(((A.frontier + 1) / firstCount) * 100));
             if (fill) fill.style.width = p + '%';
             if (pct) pct.textContent = p + '%';
-            if (done >= total) resolve();
-            else launch();
-          });
-        }
+            if (A.frontier >= firstCount - 1) markInit();
+          }
+          if (next < total) launch();
+        });
       }
-      launch();
-    });
+    }
+    launch();
   }
 
   A.startLoading = function () {
-    return loadAll().then(function () { A.ready = true; });
+    return new Promise(function (resolve) { loadAll(resolve); });
   };
 })();

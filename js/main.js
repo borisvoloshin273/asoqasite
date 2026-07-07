@@ -9,8 +9,7 @@
   A.panels.build();
   A.initLang();
 
-  // Высота страницы задаёт длину скролла (темп скраба)
-  document.body.style.height = CFG.pageVh + 'vh';
+  // Высоту страницы (длину скролла) задаёт scrubber динамически по мере загрузки
 
   var loopRunning = false;
   function loop() {
