@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ASOQA — от идеи до вершины</title>
+  <meta name="description" content="ASOQA — разработка мобильных приложений: от идеи до первого места в сторах." />
+  <meta name="theme-color" content="#05070B" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="ASOQA — от идеи до вершины" />
+  <meta property="og:description" content="Разработка мобильных приложений: от идеи до первого места в сторах." />
+  <meta property="og:image" content="assets/og-image.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Фиксированная сцена: холст с текущим кадром ленты -->
+  <div id="stage" aria-hidden="true">
+    <canvas id="frame"></canvas>
+    <div id="scrim"></div>
+  </div>
+
+  <!-- Верхняя панель: бренд + переключатель языка -->
+  <header id="topbar">
+    <div class="brand">
+      <span class="brand-mark">ASOQA</span>
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span class="brand-tag" data-ui="tagline"></span>
+    </div>
+    <nav class="lang" aria-label="Language">
+      <button type="button" id="lang-ru" class="lang-btn" data-lang="ru">RU</button>
+      <span class="lang-sep" aria-hidden="true"></span>
+      <button type="button" id="lang-en" class="lang-btn" data-lang="en">EN</button>
+    </nav>
+  </header>
+
+  <!-- Сигнатура: траектория миссии (прогресс + 8 станций) -->
+  <aside id="rail" aria-hidden="true">
+    <div class="rail-readout"><span id="rail-cur">01</span><span class="rail-slash">/</span><span id="rail-total">08</span></div>
+    <div class="rail-track">
+      <div class="rail-fill" id="rail-fill"></div>
+      <div class="rail-stations" id="rail-stations"></div>
+    </div>
+  </aside>
+
+  <!-- Плашки с текстом (генерируются panels.js из config) -->
+  <main id="panels"></main>
+
+  <!-- Подсказка «листайте» -->
+  <div id="scroll-hint" data-ui="hint"><span class="hint-text"></span><span class="hint-arrow" aria-hidden="true">↓</span></div>
+
+  <!-- Прелоадер -->
+  <div id="preloader">
+    <div class="pl-inner">
+      <div class="pl-brand">ASOQA</div>
+      <div class="pl-bar"><div class="pl-fill" id="pl-fill"></div></div>
+      <div class="pl-meta"><span class="pl-label" data-ui="loading"></span><span class="pl-pct" id="pl-pct">0%</span></div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/loader.js"></script>
+  <script src="js/scrubber.js"></script>
+  <script src="js/panels.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

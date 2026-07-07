@@ -1,0 +1,6 @@
+{
+  "scrubFps": 12,
+  "width": 1280,
+  "totalFrames": 631,
+  "scenes": [{"id":1,"dir":"scene01","file":"1.mp4","frames":46,"dur":3.833333},{"id":2,"dir":"scene02","file":"2.mp4","frames":54,"dur":4.500000},{"id":3,"dir":"scene03","file":"3.mp4","frames":61,"dur":5.042000},{"id":4,"dir":"scene04","file":"4.mp4","frames":61,"dur":5.042000},{"id":5,"dir":"scene05","file":"5.mp4","frames":61,"dur":5.042000},{"id":6,"dir":"scene06","file":"6.mp4","frames":94,"dur":7.800000},{"id":7,"dir":"scene07","file":"7.mp4","frames":169,"dur":14.042000},{"id":8,"dir":"scene08","file":"8.mp4","frames":85,"dur":7.059000}]
+}

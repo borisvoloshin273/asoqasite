@@ -1,0 +1,408 @@
+/* =========================================================================
+   ASOQA — scroll-scrub site
+   Direction: "Mission telemetry" — тихая точная оболочка вокруг ленты-фильма.
+   ========================================================================= */
+
+:root {
+  /* Палитра */
+  --bg:        #05070B;
+  --ink:       #0A0E14;
+  --text:      #F4F6FB;
+  --text-dim:  #99A3B4;
+  --hair:      rgba(255, 255, 255, 0.14);
+  --hair-soft: rgba(255, 255, 255, 0.08);
+  --amber:     #FFB23E;   /* искра / идея */
+  --blue:      #4DA3FF;   /* масштаб / мир */
+  --accent:    var(--blue);       /* текущий акцент — задаётся JS по сцене */
+
+  /* Стекло плашек */
+  --glass-bg:   rgba(9, 12, 18, 0.54);
+  --glass-brd:  rgba(255, 255, 255, 0.16);
+  --glass-blur: 15px;
+
+  /* Типографика */
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+
+  /* Ритм */
+  --pad: clamp(18px, 4vw, 56px);
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--bg); }
+
+body {
+  margin: 0;
+  /* Высота задаёт длину скролла (темп скраба). JS уточнит из config.pageVh. */
+  height: 850vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+
+/* Пока грузится — скролл заблокирован (снимается классом .ready на <html>) */
+html:not(.ready) body { overflow: hidden; }
+
+img { max-width: 100%; }
+
+/* -------------------------------------------------------------------------
+   Сцена: фиксированный холст с кадром
+   ------------------------------------------------------------------------- */
+#stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: var(--bg);
+}
+#frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* Мягкая виньетка — помогает читаемости плашек и топ-бара на светлых кадрах */
+#scrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(5,7,11,0.55) 0%, rgba(5,7,11,0) 22%, rgba(5,7,11,0) 70%, rgba(5,7,11,0.5) 100%);
+  opacity: 0.9;
+}
+
+/* -------------------------------------------------------------------------
+   Топ-бар
+   ------------------------------------------------------------------------- */
+#topbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(14px, 2.4vw, 26px) var(--pad);
+  padding-top: max(clamp(14px, 2.4vw, 26px), env(safe-area-inset-top));
+  /* Собственная подложка бара — гарантирует читаемость на любых (в т.ч. белых) кадрах */
+  background: linear-gradient(to bottom, rgba(3,5,9,0.62) 0%, rgba(3,5,9,0.30) 52%, rgba(3,5,9,0) 100%);
+}
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.brand-mark {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: clamp(17px, 1.5vw, 21px);
+  letter-spacing: 0.22em;
+  color: var(--text);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.55), 0 1px 20px rgba(0,0,0,0.4);
+}
+.brand-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px var(--accent);
+  animation: signal 2.6s var(--ease) infinite;
+}
+@keyframes signal {
+  0%, 70%, 100% { opacity: 1; transform: translateY(-2px) scale(1); }
+  82% { opacity: 0.35; transform: translateY(-2px) scale(0.72); }
+}
+.brand-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.lang { display: flex; align-items: center; gap: 10px; }
+.lang-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 4px 2px;
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  transition: color 0.25s var(--ease);
+}
+.lang-btn:hover { color: var(--text); }
+.lang-btn.active { color: var(--text); }
+.lang-btn.active::after {
+  content: "";
+  display: block;
+  height: 2px;
+  margin-top: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.lang-sep { width: 1px; height: 12px; background: var(--hair); }
+
+/* -------------------------------------------------------------------------
+   Сигнатура: траектория миссии (правый край)
+   ------------------------------------------------------------------------- */
+#rail {
+  position: fixed;
+  z-index: 15;
+  right: clamp(14px, 2vw, 30px);
+  top: 0; bottom: 0;
+  width: 46px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  pointer-events: none;
+}
+.rail-readout {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--text);
+  text-shadow: 0 1px 8px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.7);
+  display: flex;
+  gap: 2px;
+}
+.rail-readout .rail-slash { color: var(--text-dim); }
+#rail-total { color: var(--text-dim); }
+.rail-track {
+  position: relative;
+  width: 2px;
+  height: min(52vh, 460px);
+  background: var(--hair-soft);
+  border-radius: 2px;
+}
+.rail-fill {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 0%;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--amber), var(--blue));
+  box-shadow: 0 0 10px rgba(77,163,255,0.35);
+}
+.rail-stations { position: absolute; inset: 0; }
+.rail-station {
+  position: absolute;
+  left: 50%;
+  width: 7px; height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1.5px solid var(--hair);
+  transition: border-color 0.3s var(--ease), background 0.3s var(--ease), transform 0.3s var(--ease);
+}
+.rail-station.passed { border-color: var(--accent); background: var(--accent); }
+.rail-station.active {
+  border-color: #fff;
+  background: var(--accent);
+  transform: scale(1.5);
+  box-shadow: 0 0 12px var(--accent);
+}
+
+/* -------------------------------------------------------------------------
+   Плашки (стекло)
+   ------------------------------------------------------------------------- */
+#panels {
+  position: fixed;
+  inset: 0;
+  z-index: 12;
+  pointer-events: none;
+}
+.panel {
+  position: absolute;
+  max-width: min(430px, 84vw);
+  padding: 22px 24px 24px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-brd);
+  border-radius: 16px;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+  backdrop-filter: blur(var(--glass-blur)) saturate(1.2);
+  box-shadow: 0 18px 50px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+  /* Появление только через opacity/blur — позиционирующий transform не трогаем,
+     поэтому центрирование не конфликтует с анимацией и reduced-motion. */
+  opacity: 0;
+  filter: blur(3px);
+  transition: opacity 0.5s var(--ease), filter 0.5s var(--ease);
+  will-change: opacity, filter;
+}
+.panel.show { opacity: 1; filter: blur(0); }
+
+/* Позиции плашек (panelPos) — статичные, без анимации */
+.panel.pos-center      { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.panel.pos-bottom      { left: 50%; bottom: clamp(76px, 12vh, 120px); transform: translateX(-50%); }
+.panel.pos-bottom-left { left: var(--pad); bottom: clamp(76px, 12vh, 120px); }
+.panel.pos-top-left    { left: var(--pad); top: clamp(90px, 15vh, 150px); }
+.panel.pos-top         { left: 50%; top: clamp(90px, 15vh, 150px); transform: translateX(-50%); }
+
+.panel-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.panel-eyebrow .eb-num { color: var(--accent); }
+.panel-eyebrow .eb-tag { color: var(--text-dim); letter-spacing: 0.16em; }
+.panel-h {
+  margin: 0 0 10px;
+  font-size: clamp(23px, 3vw, 34px);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+.panel-p {
+  margin: 0;
+  font-size: clamp(14px, 1.4vw, 16px);
+  line-height: 1.5;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.panel-cta {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 11px 20px;
+  border-radius: 100px;
+  background: var(--text);
+  color: #06080d;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  transition: transform 0.2s var(--ease), box-shadow 0.25s var(--ease);
+}
+.panel-cta::after { content: "→"; font-family: var(--mono); }
+.panel-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(77,163,255,0.3); }
+
+/* -------------------------------------------------------------------------
+   Подсказка «листайте»
+   ------------------------------------------------------------------------- */
+#scroll-hint {
+  position: fixed;
+  z-index: 18;
+  left: 50%;
+  bottom: clamp(20px, 4vh, 40px);
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  transition: opacity 0.5s var(--ease);
+}
+#scroll-hint.hide { opacity: 0; pointer-events: none; }
+.hint-arrow { font-size: 14px; animation: bob 1.8s var(--ease) infinite; }
+@keyframes bob { 0%,100% { transform: translateY(0); opacity: 0.6; } 50% { transform: translateY(5px); opacity: 1; } }
+
+/* -------------------------------------------------------------------------
+   Прелоадер
+   ------------------------------------------------------------------------- */
+#preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.7s var(--ease), visibility 0.7s;
+}
+#preloader.done { opacity: 0; visibility: hidden; }
+.pl-inner { width: min(320px, 74vw); text-align: center; }
+.pl-brand {
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: 0.34em;
+  padding-left: 0.34em; /* компенсация трекинга для центровки */
+  color: var(--text);
+  margin-bottom: 26px;
+}
+.pl-bar {
+  height: 2px;
+  background: var(--hair-soft);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pl-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(to right, var(--amber), var(--blue));
+  transition: width 0.3s var(--ease);
+}
+.pl-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* -------------------------------------------------------------------------
+   Адаптив
+   ------------------------------------------------------------------------- */
+@media (max-width: 720px) {
+  .brand-tag { display: none; }
+  /* Вертикальный рельс → тонкая нижняя полоса прогресса */
+  #rail {
+    right: 0; left: 0; top: auto; bottom: 0;
+    width: auto; height: 3px;
+    flex-direction: row;
+    gap: 0;
+  }
+  .rail-readout { display: none; }
+  .rail-track { width: 100%; height: 3px; border-radius: 0; }
+  .rail-fill {
+    top: 0; bottom: 0; left: 0; right: auto;
+    width: 0%; height: 100%;
+    background: linear-gradient(to right, var(--amber), var(--blue));
+  }
+  .rail-stations { display: none; }
+  .panel { max-width: 88vw; padding: 18px 18px 20px; }
+  /* На узком экране плашки, привязанные к краю, центрируем по горизонтали */
+  .panel.pos-bottom-left, .panel.pos-top-left { left: 50%; right: auto; transform: translateX(-50%); }
+  .panel.pos-bottom, .panel.pos-bottom-left { bottom: clamp(58px, 12vh, 100px); }
+  .panel.pos-top-left { top: clamp(84px, 14vh, 130px); }
+}
+
+/* Доступность */
+.lang-btn:focus-visible, .panel-cta:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Не трогаем позиционирующий transform — убираем только blur-движение */
+  .panel { transition: opacity 0.35s ease; filter: none; }
+  .panel.show { filter: none; }
+  .brand-dot, .hint-arrow { animation: none; }
+  .pl-fill, .rail-fill { transition: none; }
+}
