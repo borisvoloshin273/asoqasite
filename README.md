@@ -1,80 +1,49 @@
-# ASOQA — сайт-история (scroll-scrub)
+# ASOQA — promo site
 
-Одностраничный промо-сайт ASOQA. 8 видеоклипов склеены в одну ленту кадров и
-проигрываются **только скроллом** на `<canvas>` (эффект как на страницах Apple).
-Поверх — минималистичные «стеклянные» плашки с текстом на RU/EN.
+Single-page cinematic promo site for **ASOQA** (App Store Optimization studio),
+implemented from the `ASOQA7 Hig` Claude Design handoff. Scroll-driven film scenes
+(hero → idea → build → launch → Top 5), an animated "rise to Top 5" chart, team,
+the CASIDOM featured build, case studies, and a lead form that delivers straight
+to Telegram. Bilingual **EN / ES** (remembered in `localStorage`).
 
-## Как открыть локально
+Framework-free: plain HTML/CSS/JS + a tiny Node server. No build step to run it.
 
-Нужен любой статический сервер (из-за загрузки кадров через fetch, `file://` не подойдёт):
+## Structure
+
+```
+index.html          — the whole page (markup + inline design styles)
+js/app.js           — runtime: preloader, scroll cinematics, chart animation,
+                      EN/ES toggle, spark canvas, form → /api/lead
+media/              — optimized assets:  *.webm + *.mp4 (video),  *.webp (images)
+assets/             — favicon.svg, og-image.jpg
+server/
+  server.js         — static server + POST /api/lead → Telegram (zero deps)
+  config.json       — secrets (bot token, chat ids) — GITIGNORED
+  config.example.json
+tools/              — build/optimization scripts (see DEPLOY.md)
+Dockerfile          — containerized static+API
+DEPLOY.md           — how to run & deploy
+```
+
+## Run locally
 
 ```bash
-cd ASOQAsite
-python3 -m http.server 8123
-# открыть http://127.0.0.1:8123/
+node server/server.js          # → http://127.0.0.1:8080  (site + form API)
 ```
+The form posts to `/api/lead` (same origin) and forwards each lead to the
+configured Telegram recipients.
 
-## Что где
+## Weight
 
-```
-index.html          — разметка (топ-бар, холст, прелоадер, рельс)
-css/style.css       — весь стиль (палитра, стекло, телеметрия, адаптив)
-js/
-  config.js         — СЦЕНЫ + ТЕКСТЫ (RU/EN), позиции плашек, тайминги, CTA — правится здесь
-  i18n.js           — переключение языка RU/EN (+ память в localStorage)
-  loader.js         — прелоадер + догрузка кадров, «граница загрузки»
-  scrubber.js       — движок скраба: скролл → кадр на холсте
-  panels.js         — плашки + рельс миссии, показ по прогрессу
-  main.js           — сборка и запуск
-assets/
-  frames/scene01..08/frame_%04d.jpg  — кадры для скраба (генерируются)
-  manifest.json     — число кадров по сценам (генерируется)
-  favicon.svg, og-image.jpg
-tools/build-frames.sh — пересборка кадров из video/*.mp4
-video/1..8.mp4      — исходники (в прод НЕ нужны, только для пересборки кадров)
-```
+Per-visitor ≈ **8 MB** (WebM video + WebP images), down from the 420 MB source
+handoff — a 96% reduction, no visible quality loss. Only the assets the design
+actually references are shipped (6 of 41 videos, 33 of 122 images).
 
-## Частые правки
+## Editing
 
-- **Тексты плашек / язык по умолчанию / ссылка кнопки** — всё в `js/config.js`
-  (`scenes[].text.ru/en`, `defaultLang`, `ctaHref`).
-- **Кнопка «Связаться»** сейчас заглушка (`ctaHref: '#'`). Поменяй на Telegram/почту, напр.
-  `ctaHref: 'https://t.me/…'` или `'mailto:…'`.
-- **Темп скраба** — `pageVh` в `config.js` (больше → лента «длиннее», крутить дольше).
-- **Плавность/отзывчивость** — `lerp` в `config.js` (0.16 по умолчанию).
+- **Copy / Spanish text** — inline in `index.html` (`data-es` / `data-es-ph`
+  attributes hold the ES translation next to the EN text).
+- **Lead recipients** — `server/config.json` `chatIds`, or `TELEGRAM_CHAT_IDS` env.
+- **Re-optimize media / regenerate index** — see the `tools/` scripts in `DEPLOY.md`.
 
-## Пересборка кадров (если поменялись видео)
-
-Требуется `ffmpeg` (лежит в `node_modules/ffmpeg-static` после `npm i`). Параметры — через
-переменные окружения:
-
-```bash
-# по умолчанию: 12 к/с, ширина 1000, качество JPEG 6
-bash tools/build-frames.sh
-# резче/тяжелее или легче/быстрее:
-SCRUB_FPS=12 WIDTH=1152 QV=6 bash tools/build-frames.sh   # резче, тяжелее
-SCRUB_FPS=12 WIDTH=880  QV=7 bash tools/build-frames.sh   # легче, быстрее старт
-```
-
-После пересборки обнови число кадров в `js/config.js` (`scenes[].frames`) из
-`assets/manifest.json`, если оно изменилось.
-
-## Деплой (статика)
-
-Заливать нужно всё, **кроме** `video/`, `node_modules/`, `docs/`, `tools/`:
-`index.html`, `css/`, `js/`, `assets/frames/`, `assets/manifest.json`, `assets/*.svg|jpg`.
-Подходит GitHub Pages, Netlify, любой статик-хостинг.
-
-## Вес и загрузка
-
-Кадры всех 8 сцен ≈ **22 МБ** (ширина 1000px). Загрузка **прогрессивная**:
-прелоадер ждёт только 1-ю сцену (старт ~1 сек), сайт открывается, а остальное
-догружается фоном. **Длина прокрутки растёт вместе с загрузкой** (`js/scrubber.js`,
-`updateHeight`) — поэтому скролл физически не может обогнать загрузку и «зависнуть»
-на кадре: если фрагмент ещё не загружен, прокрутки дальше пока просто нет, а не
-замерший кадр. Исходные видео были ~100 МБ.
-
-Против тормозов скраба (найдено замерами):
-- плашки **без `backdrop-filter`** — он пересчитывал blur каждый кадр и был главным тормозом (9.8→32.6 fps в софт-рендере);
-- кадры пережаты 1280→1000px (легче декод и загрузка), декод идёт на 14 кадров вперёд;
-- запись в DOM (рельс) только при изменении.
+Deploy: see [DEPLOY.md](DEPLOY.md).

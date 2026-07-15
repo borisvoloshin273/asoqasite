@@ -1,0 +1,14 @@
+node_modules
+video
+tools
+docs
+.git
+.gitignore
+*.md
+server/config.json
+server/config.example.json
+keys.md
+CLAUDE.md
+.claude
+.DS_Store
+*.log
