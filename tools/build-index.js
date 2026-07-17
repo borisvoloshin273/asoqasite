@@ -42,6 +42,20 @@ body = body.replace(
   '<div id="successWrap" style="display:none;">$1</div>'
 );
 
+// 8) lead form: add EMAIL/TELEGRAM contact-method toggle + single contact input
+//    (the email field becomes #contactInput name="contact"; app.js manages it)
+const toggleHtml =
+  '<div id="contactToggle" role="tablist" aria-label="Contact method" style="display:flex;gap:6px;background:rgba(5,13,18,.7);border:1px solid #1A2A38;border-radius:10px;padding:5px;backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);">' +
+  '<button type="button" role="tab" data-method="email" aria-selected="true" style="flex:1;cursor:pointer;border:none;border-radius:7px;padding:12px 8px;font-family:\'Chakra Petch\',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;color:#04130d;background:linear-gradient(90deg,#00FF99,#00D4C8);box-shadow:0 0 16px rgba(0,255,153,.25);transition:color .2s,background .2s,box-shadow .2s;">EMAIL</button>' +
+  '<button type="button" role="tab" data-method="telegram" aria-selected="false" style="flex:1;cursor:pointer;border:none;border-radius:7px;padding:12px 8px;font-family:\'Chakra Petch\',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;color:#7e93a8;background:transparent;transition:color .2s,background .2s,box-shadow .2s;">TELEGRAM</button>' +
+  '</div>';
+body = body.replace(
+  /<input type="email" name="email"[^>]*?style="([^"]*)"[^>]*>/,
+  (m, style) => toggleHtml +
+    `<input type="text" id="contactInput" name="contact" required placeholder="YOUR&nbsp;EMAIL" autocomplete="email" inputmode="email" style="${style}">`
+);
+if (!body.includes('id="contactInput"')) { console.error("!! failed to inject contact toggle/input"); process.exit(1); }
+
 // sanity: no DC leftovers
 for (const bad of ["{{", "sc-if", "x-dc", "onSubmit=", "onClick="]) {
   if (body.includes(bad)) { console.error("!! leftover DC construct:", bad); process.exit(1); }
